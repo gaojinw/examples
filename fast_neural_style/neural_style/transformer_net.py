@@ -5,8 +5,10 @@ class TransformerNet(torch.nn.Module):
     def __init__(self):
         super(TransformerNet, self).__init__()
         # Initial convolution layers
-        self.conv1 = ConvLayer(3, 16, kernel_size=9, stride=1)
-        self.in1 = torch.nn.InstanceNorm2d(16, affine=True)
+        self.conv1_0 = ConvLayer(3, 8, kernel_size=5, stride=1)
+        self.in1_0 = torch.nn.InstanceNorm2d(8, affine=True)
+        self.conv1_1 = ConvLayer(8, 16, kernel_size=5, stride=1)
+        self.in1_1 = torch.nn.InstanceNorm2d(16, affine=True)
         self.conv2 = ConvLayer(16, 32, kernel_size=3, stride=2)
         self.in2 = torch.nn.InstanceNorm2d(32, affine=True)
         self.conv3 = ConvLayer(32, 64, kernel_size=3, stride=2)
@@ -22,12 +24,15 @@ class TransformerNet(torch.nn.Module):
         self.in4 = torch.nn.InstanceNorm2d(32, affine=True)
         self.deconv2 = UpsampleConvLayer(32, 16, kernel_size=3, stride=1, upsample=2)
         self.in5 = torch.nn.InstanceNorm2d(16, affine=True)
-        self.deconv3 = ConvLayer(16, 3, kernel_size=9, stride=1)
+        self.deconv3_0 = ConvLayer(16, 8, kernel_size=5, stride=1)
+        self.in6 = torch.nn.InstanceNorm2d(8, affine=True)
+        self.deconv3_1 = ConvLayer(8, 3, kernel_size=5, stride=1)
         # Non-linearities
         self.relu = torch.nn.ReLU()
 
     def forward(self, X):
-        y = self.relu(self.in1(self.conv1(X)))
+        y = self.relu(self.in1_0(self.conv1_0(X)))
+        y = self.relu(self.in1_1(self.conv1_1(y)))
         y = self.relu(self.in2(self.conv2(y)))
         y = self.relu(self.in3(self.conv3(y)))
         y = self.res1(y)
@@ -37,7 +42,8 @@ class TransformerNet(torch.nn.Module):
         y = self.res5(y)
         y = self.relu(self.in4(self.deconv1(y)))
         y = self.relu(self.in5(self.deconv2(y)))
-        y = self.deconv3(y)
+        y = self.relu(self.in6(self.deconv3_0(y)))
+        y = self.deconv3_1(y)
         return y
 
 
