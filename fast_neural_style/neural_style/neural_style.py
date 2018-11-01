@@ -29,7 +29,10 @@ def check_paths(args):
 
 
 def train(args):
-    device = torch.device("cuda" if args.cuda else "cpu")
+    if args.cuda:
+        device = torch.device("cuda:{}".format(args.cuda-1))
+    else:
+        device = torch.device("cpu")
 
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -46,6 +49,14 @@ def train(args):
     transformer = TransformerNet().to(device)
     optimizer = Adam(transformer.parameters(), args.lr)
     mse_loss = torch.nn.MSELoss()
+
+    if args.resume is not None:
+        resumed_state_dict = torch.load(args.resume)
+        # remove saved deprecated running_* keys in InstanceNorm from the checkpoint
+        for k in list(resumed_state_dict.keys()):
+                if re.search(r'in\d+\.running_(mean|var)$', k):
+                    del resumed_state_dict[k]
+        transformer.load_state_dict(resumed_state_dict)
 
     vgg = Vgg16(requires_grad=False).to(device)
     style_transform = transforms.Compose([
@@ -205,6 +216,8 @@ def main():
                                   help="number of images after which the training loss is logged, default is 500")
     train_arg_parser.add_argument("--checkpoint-interval", type=int, default=2000,
                                   help="number of batches after which a checkpoint of the trained model will be created")
+    train_arg_parser.add_argument("--resume", type=str, default=None,
+                                  help="resume from a pre-trained model")
 
     eval_arg_parser = subparsers.add_parser("eval", help="parser for evaluation/stylizing arguments")
     eval_arg_parser.add_argument("--content-image", type=str, required=True,
