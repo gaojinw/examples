@@ -51,12 +51,14 @@ def train(args):
     mse_loss = torch.nn.MSELoss()
 
     if args.resume is not None:
-        resumed_state_dict = torch.load(args.resume)
-        # remove saved deprecated running_* keys in InstanceNorm from the checkpoint
-        for k in list(resumed_state_dict.keys()):
+        if os.path.isfile(args.resume):
+            resumed_state_dict = torch.load(args.resume)
+            # remove saved deprecated running_* keys in InstanceNorm from the checkpoint
+            for k in list(resumed_state_dict.keys()):
                 if re.search(r'in\d+\.running_(mean|var)$', k):
                     del resumed_state_dict[k]
-        transformer.load_state_dict(resumed_state_dict)
+            transformer.load_state_dict(resumed_state_dict)
+            print("Loaded " + args.resume)
 
     vgg = Vgg16(requires_grad=False).to(device)
     style_transform = transforms.Compose([
